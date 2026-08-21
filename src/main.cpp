@@ -1,9 +1,12 @@
 #include <vector>
 #include <entt/entt.hpp>
+#include <iostream>
+#include <fstream>
 
 #include "raylib.h"
 #include "Player.h"
 #include "Components.h"
+#include "ResourceManager.h"
 
 #include "Chunk.h"
 struct Registry {
@@ -27,17 +30,20 @@ void update(float dt, Camera2D* camera, Player* player, int width, int height) {
     camera->target = player->position;
 }
 
-void draw(float dt,Camera2D* camera, Player* player, Registry* reg) {
+void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceManager* rm) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
-
+    auto view = reg->registry.view<TransformComponent, SpriteComponent>();
 
     BeginMode2D(*camera);
-        for (auto & chunk : reg->chunks) {
-            chunk.draw();
+        for (auto [ent, tr, sp] : view.each()) {
+            DrawTextureEx(rm->get(sp.textureID), tr.position, tr.rotation, 1.0f, sp.tint);
         }
-        DrawCircle(200, 200, 40, BLACK);
+        // for (auto & chunk : reg->chunks) {
+        //     chunk.draw();
+        // }
+        // DrawCircle(200, 200, 40, BLACK);
         DrawCircle(player->position.x, player->position.y, 10, RED);
     EndMode2D();
     EndDrawing();
@@ -51,6 +57,44 @@ void spawn_chunks(Registry* reg) {
     for (float x = start; x < start*-1; x+=32.0f*16.0f) {
         for (float y = start; y < start*-1; y+=32.0f*16.0f) {
             reg->chunks.emplace_back(x, y);
+        }
+    }
+}
+
+namespace MapLoader {
+    void Load(const std::string& filepath, entt::registry& reg) {
+        std::fstream file(filepath);
+
+        if (!file.is_open()) {
+            std::cerr << "Error: Could not open the file!" << '\n';
+        }
+
+        std::string line;
+        float y = 0.0f;
+        while (std::getline(file, line)) {
+            float x = 0.0f;
+            for (auto c: line) {
+                switch (c) {
+                    case '0': {
+                        const auto entity = reg.create();
+                        reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
+                        reg.emplace<SpriteComponent>(entity, 0, WHITE);
+                        x++;
+                        break;
+                    }
+                    case '1': {
+                        const auto entity = reg.create();
+                        reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
+                        reg.emplace<SpriteComponent>(entity, 0, WHITE);
+                        x++;
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
+            }
+            y++;
         }
     }
 }
@@ -70,13 +114,12 @@ int main() {
     camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
     camera.zoom = 1.0f;
 
-
     auto* reg = new Registry();
 
-    const auto entity = reg->registry.create();
-    reg->registry.emplace<TransformComponent>(entity, Vector2(screenWidth/2.0f, screenHeight/2.0f), 0.0f);
-    reg->registry.emplace<SpriteComponent>(entity, 1, RED);
+    auto* rm = new ResourceManager();
+    rm->Load("../assets/blocks/environment/arkycite-floor.png");
 
+    MapLoader::Load("../assets/map.txt", reg->registry);
 
     spawn_chunks(reg);
 
@@ -85,9 +128,10 @@ int main() {
         float deltaTime = GetFrameTime();
 
         update(deltaTime, &camera, &player, screenWidth, screenHeight);
-        draw(deltaTime,&camera,  &player, reg);
+        draw(deltaTime,&camera,  &player, reg, rm);
     }
 
+    delete rm;
     delete reg;
     CloseWindow();
 

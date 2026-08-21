@@ -1,7 +1,7 @@
 #pragma once
 
 #define CHUNK_SIZE 32
-#define CELL_SIZE 16;
+#define CELL_SIZE 32;
 
 enum class CeilType {
     GRASS
@@ -19,6 +19,6 @@ struct Chunk {
     float x, y;
 
     void draw() const {
-        DrawRectangleLines(x, y, 32*16, 32*16, BLACK);
+        DrawRectangleLines(x, y, 32*32, 32*32, BLACK);
     }
 };
