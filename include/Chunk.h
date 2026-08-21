@@ -1,7 +1,7 @@
 #pragma once
 
-#define CHUNK_SIZE 32
-#define CELL_SIZE 32;
+#include "raylib.h"
+#include "constants.h"
 
 enum class CeilType {
     GRASS
@@ -15,10 +15,23 @@ struct Ceil {
 };
 
 struct Chunk {
-    Chunk(float x, float y): x(x), y(y) {}
+    Chunk(float x, float y): x(x), y(y) {
+    	ceils.reserve(CHUNK_SIZE*CHUNK_SIZE);
+	    for (int i = 0; i < CHUNK_SIZE*CHUNK_SIZE; i++) {
+		    ceils.emplace_back();
+	    }
+    }
     float x, y;
+    std::vector<Ceil> ceils;
 
-    void draw() const {
-        DrawRectangleLines(x, y, 32*32, 32*32, BLACK);
+    void draw(bool isPlayerIn) const {
+
+    	Color color;
+    	if (isPlayerIn) {
+    		color = LIME;
+    	} else {
+    		color = BLACK;
+    	}
+        DrawRectangleLines(x, y, CHUNK_SIZE*32, CHUNK_SIZE*32, color);
     }
 };

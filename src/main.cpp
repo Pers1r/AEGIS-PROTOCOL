@@ -7,6 +7,7 @@
 #include "Player.h"
 #include "Components.h"
 #include "ResourceManager.h"
+#include "MapLoader.h"
 
 #include "Chunk.h"
 struct Registry {
@@ -21,6 +22,8 @@ void update(float dt, Camera2D* camera, Player* player, int width, int height) {
     if (IsKeyDown(KEY_S)) {player->position.y += player->speed * dt;}
     if (IsKeyDown(KEY_D)) {player->position.x += player->speed * dt;}
 
+
+
     camera->zoom += ((float)GetMouseWheelMove()*0.05f);
 
     if (camera->zoom > 3.0f) camera->zoom = 3.0f;
@@ -33,19 +36,40 @@ void update(float dt, Camera2D* camera, Player* player, int width, int height) {
 void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceManager* rm) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
-
     auto view = reg->registry.view<TransformComponent, SpriteComponent>();
 
+	Vector2 mousePos = GetScreenToWorld2D(GetMousePosition(), *camera);
+
     BeginMode2D(*camera);
+
         for (auto [ent, tr, sp] : view.each()) {
             DrawTextureEx(rm->get(sp.textureID), tr.position, tr.rotation, 1.0f, sp.tint);
+        	if (mousePos.x  > tr.position.x && mousePos.x < tr.position.x + CELL_SIZE &&
+        		mousePos.y > tr.position.y && mousePos.y < tr.position.y + CELL_SIZE) {
+        		DrawRectangleLines(tr.position.x, tr.position.y, CELL_SIZE, CELL_SIZE, RED);
+        	}
         }
-        // for (auto & chunk : reg->chunks) {
-        //     chunk.draw();
-        // }
+
+        for (auto & chunk : reg->chunks) {
+        	// DrawCircle(chunk.x, chunk.y, 5, RED);
+        	// DrawCircle(chunk.x+ CHUNK_SIZE*CELL_SIZE, chunk.y+ CHUNK_SIZE*CELL_SIZE, 5, YELLOW);
+        	if (chunk.x < player->position.x && chunk.x + CHUNK_SIZE*CELL_SIZE > player->position.x
+        		&& chunk.y < player->position.y && chunk.y + CHUNK_SIZE*CELL_SIZE > player->position.y) {
+        		chunk.draw(true);
+        	} else {
+        		chunk.draw(false);
+        	}
+
+
+        }
+		DrawTextureEx(rm->get(1), {0, 0}, 0, 1.0f, WHITE);
         // DrawCircle(200, 200, 40, BLACK);
         DrawCircle(player->position.x, player->position.y, 10, RED);
+
     EndMode2D();
+
+	DrawFPS(10, 10);
+
     EndDrawing();
 }
 
@@ -53,71 +77,34 @@ void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceMana
 
 
 void spawn_chunks(Registry* reg) {
-    float start = -3200.0;
-    for (float x = start; x < start*-1; x+=32.0f*16.0f) {
-        for (float y = start; y < start*-1; y+=32.0f*16.0f) {
+	int cap = 32*16*2;
+    float start = 0;
+    for (float x = start; x < cap; x+=32.0f*16.0f) {
+        for (float y = start; y < cap; y+=32.0f*16.0f) {
             reg->chunks.emplace_back(x, y);
         }
     }
 }
 
-namespace MapLoader {
-    void Load(const std::string& filepath, entt::registry& reg) {
-        std::fstream file(filepath);
 
-        if (!file.is_open()) {
-            std::cerr << "Error: Could not open the file!" << '\n';
-        }
-
-        std::string line;
-        float y = 0.0f;
-        while (std::getline(file, line)) {
-            float x = 0.0f;
-            for (auto c: line) {
-                switch (c) {
-                    case '0': {
-                        const auto entity = reg.create();
-                        reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
-                        reg.emplace<SpriteComponent>(entity, 0, WHITE);
-                        x++;
-                        break;
-                    }
-                    case '1': {
-                        const auto entity = reg.create();
-                        reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
-                        reg.emplace<SpriteComponent>(entity, 0, WHITE);
-                        x++;
-                        break;
-                    }
-                    default:
-                        break;
-                }
-
-            }
-            y++;
-        }
-    }
-}
 
 int main() {
-    constexpr int screenWidth = 1280;
-    constexpr int screenHeight = 820;
-
-    InitWindow(screenWidth, screenHeight, "AEGIS PROTOCOL");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "AEGIS PROTOCOL");
 
     Player player = { 0 };
-    player.position = (Vector2){ 400, 280 };
+    player.position = (Vector2){ PLAYER_SPAWN_X, PLAYER_SPAWN_Y };
     player.speed = 100;
 
     Camera2D camera = { 0 };
     camera.target = player.position;
-    camera.offset = (Vector2){ screenWidth/2.0f, screenHeight/2.0f };
+    camera.offset = (Vector2){ SCREEN_WIDTH/2.0f, SCREEN_HEIGHT/2.0f };
     camera.zoom = 1.0f;
 
     auto* reg = new Registry();
 
     auto* rm = new ResourceManager();
     rm->Load("../assets/blocks/environment/arkycite-floor.png");
+	rm->Load("../assets/blocks/distribution/conveyors/conveyor-0-0.png");
 
     MapLoader::Load("../assets/map.txt", reg->registry);
 
@@ -127,7 +114,7 @@ int main() {
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
 
-        update(deltaTime, &camera, &player, screenWidth, screenHeight);
+        update(deltaTime, &camera, &player, SCREEN_WIDTH, SCREEN_HEIGHT);
         draw(deltaTime,&camera,  &player, reg, rm);
     }
 

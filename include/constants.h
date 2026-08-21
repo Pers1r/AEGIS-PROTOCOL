@@ -1,0 +1,14 @@
+#pragma once
+
+// SCREEN
+#define SCREEN_WIDTH  1280
+#define SCREEN_HEIGHT  820
+
+// CHUNK
+#define CHUNK_SIZE 16
+#define CELL_SIZE 32
+
+
+//PLAYER
+#define PLAYER_SPAWN_X 1000
+#define PLAYER_SPAWN_Y 1000
