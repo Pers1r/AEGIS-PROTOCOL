@@ -14,30 +14,32 @@ enum class TextureID {
 
 class ResourceManager {
 public:
-    ResourceManager() {
-        index = 0;
-    }
     ~ResourceManager() {
         UnloadAll();
     }
 
-    void Load(const std::string& filepath) {
-        Texture2D texture = LoadTexture(filepath.c_str());
-        textures.emplace(index++, texture);
+    void Load(const std::string& id, const std::string& filepath) {
+    	if (!textures.contains(id)) {
+    		Texture2D tex = LoadTexture(filepath.c_str());
+    		textures[id] = tex;
+    	}
         std::cout << "Load texture: " << filepath << std::endl;
     }
 
-    Texture2D get(const int i) const{
-        return textures.at(i);
+    Texture2D Get(const std::string& id) {
+    	if (textures.find(id) != textures.end()) {
+    		return textures[id];
+    	}
+    	std::cerr << "Warning: Texture '" << id << "' not found!\n";
+    	return Texture2D{ 0 };
     }
 
     void UnloadAll() {
-        for (auto & texture : textures) {
-            UnloadTexture(texture.second);
-        }
+    	for (auto& pair : textures) {
+    		UnloadTexture(pair.second);
+    	}
+    	textures.clear();
     }
-    int index;
 private:
-    std::map<int, Texture2D> textures;
-
+	std::unordered_map<std::string, Texture2D> textures;
 };

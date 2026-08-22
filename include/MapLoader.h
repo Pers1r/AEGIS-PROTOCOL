@@ -17,14 +17,18 @@ namespace MapLoader {
 					case '0': {
 						const auto entity = reg.create();
 						reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
-						reg.emplace<SpriteComponent>(entity, 0, WHITE);
+						reg.emplace<SpriteComponent>(entity, "grass", WHITE);
 						x++;
 						break;
 					}
 					case '1': {
 						const auto entity = reg.create();
 						reg.emplace<TransformComponent>(entity, Vector2(32.0f*x, 32.0f*y), 0.0f);
-						reg.emplace<SpriteComponent>(entity, 0, WHITE);
+						reg.emplace<SpriteComponent>(entity, "belt00", WHITE);
+						AnimatorComponent anim;
+						anim.frameTime = 0.15f;
+						anim.frames = {"belt00", "belt01", "belt02", "belt03"};
+						reg.emplace<AnimatorComponent>(entity, anim);
 						x++;
 						break;
 					}

@@ -16,7 +16,7 @@ struct Registry {
 };
 
 
-void update(float dt, Camera2D* camera, Player* player, int width, int height) {
+void update(float dt, Camera2D* camera, Player* player, int width, int height, Registry* reg) {
     if (IsKeyDown(KEY_W)) {player->position.y -= player->speed * dt;}
     if (IsKeyDown(KEY_A)) {player->position.x -= player->speed * dt;}
     if (IsKeyDown(KEY_S)) {player->position.y += player->speed * dt;}
@@ -31,6 +31,17 @@ void update(float dt, Camera2D* camera, Player* player, int width, int height) {
 
     camera->offset = (Vector2){ width/2.0f, height/2.0f };
     camera->target = player->position;
+
+	auto animView = reg->registry.view<SpriteComponent, AnimatorComponent>();
+
+	for (auto [ent, sp, anim] : animView.each()) {
+		anim.timeAccumulator += dt;
+		if (anim.timeAccumulator >= anim.frameTime) {
+			anim.timeAccumulator -= anim.frameTime;
+			anim.currentFrame = (anim.currentFrame + 1) % anim.frames.size();
+			sp.textureID = anim.frames[anim.currentFrame];
+		}
+	}
 }
 
 void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceManager* rm) {
@@ -43,7 +54,7 @@ void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceMana
     BeginMode2D(*camera);
 
         for (auto [ent, tr, sp] : view.each()) {
-            DrawTextureEx(rm->get(sp.textureID), tr.position, tr.rotation, 1.0f, sp.tint);
+            DrawTextureEx(rm->Get(sp.textureID), tr.position, tr.rotation, 1.0f, sp.tint);
         	if (mousePos.x  > tr.position.x && mousePos.x < tr.position.x + CELL_SIZE &&
         		mousePos.y > tr.position.y && mousePos.y < tr.position.y + CELL_SIZE) {
         		DrawRectangleLines(tr.position.x, tr.position.y, CELL_SIZE, CELL_SIZE, RED);
@@ -62,8 +73,10 @@ void draw(float dt,Camera2D* camera, Player* player, Registry* reg, ResourceMana
 
 
         }
-		DrawTextureEx(rm->get(1), {0, 0}, 0, 1.0f, WHITE);
+
+		// DrawTextureEx(rm->Get("belt0"), {0, 0}, 0, 1.0f, WHITE);
         // DrawCircle(200, 200, 40, BLACK);
+
         DrawCircle(player->position.x, player->position.y, 10, RED);
 
     EndMode2D();
@@ -103,8 +116,11 @@ int main() {
     auto* reg = new Registry();
 
     auto* rm = new ResourceManager();
-    rm->Load("../assets/blocks/environment/arkycite-floor.png");
-	rm->Load("../assets/blocks/distribution/conveyors/conveyor-0-0.png");
+    rm->Load("grass", "../assets/blocks/environment/arkycite-floor.png");
+	rm->Load("belt00", "../assets/blocks/distribution/conveyors/conveyor-0-0.png");
+	rm->Load("belt01", "../assets/blocks/distribution/conveyors/conveyor-0-1.png");
+	rm->Load("belt02", "../assets/blocks/distribution/conveyors/conveyor-0-2.png");
+	rm->Load("belt03", "../assets/blocks/distribution/conveyors/conveyor-0-3.png");
 
     MapLoader::Load("../assets/map.txt", reg->registry);
 
@@ -114,8 +130,9 @@ int main() {
     while (!WindowShouldClose()) {
         float deltaTime = GetFrameTime();
 
-        update(deltaTime, &camera, &player, SCREEN_WIDTH, SCREEN_HEIGHT);
+        update(deltaTime, &camera, &player, SCREEN_WIDTH, SCREEN_HEIGHT, reg);
         draw(deltaTime,&camera,  &player, reg, rm);
+
     }
 
     delete rm;

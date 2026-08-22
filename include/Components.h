@@ -27,8 +27,15 @@ struct TransformComponent {
 
 
 struct SpriteComponent {
-    int textureID;
+	std::string textureID;
     Color tint;
+};
+
+struct AnimatorComponent {
+	std::vector<std::string> frames;
+	int currentFrame = 0;
+	float frameTime = 0.15f;
+	float timeAccumulator = 0.0f;
 };
 
 struct DirectionComponent {
